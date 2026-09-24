@@ -128,3 +128,19 @@ preprocess_data(
   dataset_name = "Portuguese",
   mice_version = 5
 )
+
+
+
+#Statistical tests for predictors
+#Dummy variables "_other" are a reference point
+Math_regression <- Math%>%
+  select(-Dalc, -Walc, -totalconsumption, -Mjob_other,
+         -Fjob_other,
+         -reason_other,
+         -guardian_other)
+
+Reg_model <- lm(
+  meantotal ~ ., 
+  data = Math_regression
+)
+summary(Reg_model)
