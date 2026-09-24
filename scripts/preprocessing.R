@@ -128,3 +128,69 @@ preprocess_data(
   dataset_name = "Portuguese",
   mice_version = 5
 )
+
+
+
+#Ridge regression visualization
+ridge_coef <- coef(Ridgemodel, s = "lambda.min") 
+ridge_df <- as.data.frame(as.matrix(ridge_coef)) %>% 
+  rownames_to_column("Predictor") 
+names(ridge_df)[2] <- "Coefficient" 
+ridge_df <- ridge_df %>% 
+  filter(Predictor != "(Intercept)") %>% 
+  arrange(Coefficient) 
+ggplot(
+  ridge_df,
+  aes(
+    x = reorder(Predictor, Coefficient),
+    y = Coefficient,
+    fill = Coefficient
+  )
+) +
+  geom_col() +
+  coord_flip() +
+  scale_fill_gradient2(
+    low = "red",
+    mid = "white",
+    high = "blue",
+    midpoint = 0
+  ) +
+  labs(
+    title = "Ridge Regression Coefficients",
+    x = "Predictor",
+    y = "Coefficient",
+    fill = "Coefficient"
+  ) +
+  theme_minimal()
+
+#LASSO regression visualization
+lasso_coef <- coef(Lassomodel, s = "lambda.min") 
+lasso_df <- as.data.frame(as.matrix(lasso_coef)) %>% 
+  rownames_to_column("Predictor") 
+names(lasso_df)[2] <- "Coefficient" 
+lasso_df <- lasso_df %>% 
+  filter(Predictor != "(Intercept)") %>% 
+  arrange(Coefficient)
+ggplot(
+  lasso_df,
+  aes(
+    x = reorder(Predictor, Coefficient),
+    y = Coefficient,
+    fill = Coefficient
+  )
+) +
+  geom_col() +
+  coord_flip() +
+  scale_fill_gradient2(
+    low = "red",
+    mid = "white",
+    high = "blue",
+    midpoint = 0
+  ) +
+  labs(
+    title = "LASSO Regression Coefficients",
+    x = "Predictor",
+    y = "Coefficient",
+    fill = "Coefficient"
+  ) +
+  theme_minimal()
