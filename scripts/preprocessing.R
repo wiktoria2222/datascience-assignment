@@ -49,9 +49,6 @@ preprocess_data <- function(input_file, output_file, dataset_name, mice_version)
   # Remove students without both alcohol measures.
   dataset <- dataset %>% filter(!is.na(Dalc) & !is.na(Walc))
 
-  # Remove students older than 20. Keep missing ages for MICE.
-  cat("Students aged 20+ removed: ", sum(dataset$age >= 20, na.rm = TRUE), "\n", sep = "")
-  dataset <- dataset %>% filter(is.na(age) | age < 20)
 
   # Keep selected fields and remove excluded fields.
   dataset <- dataset %>% select(all_of(c(model_inputs, "Dalc", "Walc")))
@@ -89,7 +86,7 @@ preprocess_data <- function(input_file, output_file, dataset_name, mice_version)
   print(imputed_data$imp$sex)
 
   # Use the version with the smallest average difference from observed values.
-  # After removing age 22: Math uses version 1, Portuguese uses version 5.
+  #  Math uses version 4, Portuguese uses version 5.
   completed_data <- complete(imputed_data, mice_version)
 
   # Make sure no missing values after imputation
@@ -128,3 +125,86 @@ preprocess_data(
   dataset_name = "Portuguese",
   mice_version = 5
 )
+
+
+#Splitting into training and test sets 
+#Same steps applied for the portugese set
+#The glmnet standardizes automatically so there's no need for manual
+install.packages("caTools")
+library(caTools)
+set.seed(123)
+
+split <- sample.split(
+  seq_len(nrow(Math)),
+  SplitRatio = 0.7
+)
+
+Math_train <- subset(Math, split == TRUE)
+Math_test <- subset(Math, split == FALSE)
+
+#Ridge regression training model
+?cv.glmnet
+x_train <- Math_train %>%
+  select(-alc_score) %>%
+  as.matrix()
+y_train <- Math_train$alc_score
+
+Ridgemodel <- cv.glmnet(
+  x_train,
+  y_train,
+  alpha = 0,
+  standardize = TRUE
+)
+
+plot(Ridgemodel)
+Ridgemodel$lambda.min
+Ridgemodel$lambda.1se
+ridge_coef <- coef(Ridgemodel, s = "lambda.min")
+ridge_coef
+
+#Ridge regression test model
+
+x_test <- Math_test %>% 
+  select(-alc_score) %>% 
+  as.matrix() 
+ y_test <- Math_test$alc_score
+
+Ridge_pred <- predict(
+  Ridgemodel,
+  newx = x_test,
+  s = "lambda.min"
+)
+
+#Ridge regression evaluation MAE
+Ridge_mae <- mean(abs(Ridge_pred - y_test)) 
+Ridge_mae
+
+#Lasso training model
+Lassomodel <- cv.glmnet(
+  x_train,
+  y_train,
+  alpha = 1,
+  standardize = TRUE
+)
+
+plot(Lassomodel)
+Lassomodel$lambda.min
+Lassomodel$lambda.1se
+lasso_coef <- coef(Lassomodel, s = "lambda.min")
+lasso_coef
+
+#LASSO test model
+x_test <- Math_test %>% 
+  select(-alc_score) %>% 
+  as.matrix() 
+y_test <- Math_test$alc_score
+
+Lasso_pred <- predict(
+  Lassomodel,
+  newx = x_test,
+  s = "lambda.min"
+)
+
+#LASSO regression evaluation MAE
+Lasso_mae <- mean(abs(Lasso_pred - y_test)) 
+Lasso_mae
